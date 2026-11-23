@@ -1,34 +1,59 @@
 name: security
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   Secret-Scan:
     name: Secret scan (Gitleaks) [GATE]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-        with: { fetch-depth: 0 }   
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: 
+          fetch-depth: 0 
+          persist-credentials: false
       - name: Gitleaks     
         run: |
-          docker run --rm -v "${{ github.workspace }}:/repo" zricethezav/gitleaks:latest \
+          docker run --rm -v "${{ github.workspace }}:/repo:ro" \
+            zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
+
             git /repo --config /repo/.gitleaks.toml --redact --verbose --exit-code 1
 
   SAST:
     name: SAST (Semgrep) [GATE]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Semgrep
         run: |
-          docker run --rm -v "${{ github.workspace }}:/src" semgrep/semgrep:latest \
+          docker run --rm -v "${{ github.workspace }}:/src:ro" \
+            semgrep/semgrep:1.186.0@sha256:6e1b04340e60e910fbb4ddbf3c857ab0918f064417ad5ac530014ccb3cf8c8f1 \
             semgrep scan --config auto --error
 
   Dependency-Check:
     name: Dependency scan (Trivy) [REPORT]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Trivy
         run: |
-          docker run --rm -v "${{ github.workspace }}:/repo" aquasec/trivy:latest \
-            fs --scanners vuln --exit-code 0 /repo
+          docker run --rm -v "${{ github.workspace }}:/repo:ro" \
+            aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb \
+            fs --scanners vuln --exit-code 0 --no-progress /repo | tee trivy-report.txt
+      - name: Publish Trivy table to the job summary
+        if: always()
+        run: |
+          {
+            echo '## Dependency scan (Trivy): report only, does not block'
+            echo '```'
+            cat trivy-report.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
