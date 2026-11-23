@@ -11,7 +11,7 @@ jobs:
       - name: Gitleaks     
         run: |
           docker run --rm -v "${{ github.workspace }}:/repo" zricethezav/gitleaks:latest \
-            git /repo --config /repo.gitleaks.toml --redact --verbose --exit-code 1
+            git /repo --config /repo/.gitleaks.toml --redact --verbose --exit-code 1
 
   SAST:
     name: SAST (Semgrep) [GATE]
