@@ -8,3 +8,10 @@ id = "aws-access-key-id-lab"
 description = "AWS access key ID (no EXAMPLE allowlist, so the planted lab key is caught)"
 regex = '''\b((?:A3T[A-Z0-9]|AKIA|ASIA|ABIA|ACCA)[A-Z2-7]{16})\b'''
 keywords = ["akia", "asia", "abia", "acca", "a3t"]
+
+[[rules]]
+id = "aws-secret-access-key-lab"
+description = "AWS secret access key assigned to an aws_secret_access_key-style variable"
+regex = '''(?i)aws_?secret_?access_?key\s*[:=]\s*["']?([A-Za-z0-9/+=]{40})["']?'''
+secretGroup = 1
+keywords = ["secret_access_key", "secretaccesskey"]
