@@ -3,32 +3,32 @@ on: [push, pull_request]
 
 jobs:
   Secret-Scan:
-    name: Secret scan (Gitleaks) 
+    name: Secret scan (Gitleaks) [GATE]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with: { fetch-depth: 0 }   
       - name: Gitleaks     
         run: |
-          docker run -v "${{ github.workspace }}:/repo" zricethezav/gitleaks:latest \
-            detect --source /repo --exit-code 1
+          docker run --rm -v "${{ github.workspace }}:/repo" zricethezav/gitleaks:latest \
+            git /repo --config /repo.gitleaks.toml --redact --verbose --exit-code 1
 
   SAST:
-    name: SAST (Semgrep)
+    name: SAST (Semgrep) [GATE]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - name: Semgrep
         run: |
-          pip install semgrep
-          semgrep scan --config auto --error    # drop --error to make it a report
+          docker run --rm -v "${{ github.workspace }}:/src" semgrep/semgrep:latest \
+            semgrep scan --config auto --error
 
   Dependency-Check:
-    name: Dependency scan (Trivy)
+    name: Dependency scan (Trivy) [REPORT]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - name: Trivy
         run: |
-          docker run -v "${{ github.workspace }}:/repo" aquasec/trivy:latest \
+          docker run --rm -v "${{ github.workspace }}:/repo" aquasec/trivy:latest \
             fs --scanners vuln --exit-code 0 /repo
